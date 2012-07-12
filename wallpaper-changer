@@ -5,6 +5,7 @@
 wallpapers_dir=''
 delay=60
 daemonize=true
+detach=false
 
 
 # Command line options.
@@ -32,6 +33,10 @@ do
             daemonize=false
             shift
             ;;
+        --detach)
+            detach=true
+            shift
+            ;;
         --)
             break
             ;;
@@ -56,8 +61,18 @@ trap - 15
 if [ $daemonize = true ]
 then
     # Fork and exit.
-    ($0 $raw_args --no-daemon &>/dev/null &)
+    ($0 $raw_args --no-daemon --detach &)
     exit 0
+fi
+if [ $detach = true ]
+then
+    # Redirect std* fds.
+    [[ -t 0 ]] && exec </dev/null
+    [[ -t 1 ]] && exec >/dev/null
+    [[ -t 2 ]] && exec 2>/dev/null
+    # Close all non-std* fds.
+    eval exec {3..255}\>\&-
+    exec setsid "$@"
 fi
 
 
