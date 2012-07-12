@@ -1,0 +1,78 @@
+#!/bin/bash
+
+
+# Default settings.
+wallpapers_dir=''
+delay=60
+daemonize=true
+
+
+# Command line options.
+args=`getopt -o d:i: \
+        --long dir:,directory:,interval:,delay:,daemon,no-daemon,detach \
+        -n 'wallpaper-changer' -- "$@"`
+raw_args="$@"
+eval set -- "$args"
+while true
+do
+    case "$1" in
+        -d|--dir|--directory)
+            wallpapers_dir="$2"
+            shift 2
+            ;;
+        -i|--interval|--delay)
+            delay="$2"
+            shift 2
+            ;;
+        --daemon)
+            daemonize=true
+            shift
+            ;;
+        --no-daemon)
+            daemonize=false
+            shift
+            ;;
+        --)
+            break
+            ;;
+        *)
+            echo "Unrecognized option '$1'"
+            exit 1
+            ;;
+    esac
+done
+
+
+# Kill other instances.
+#TODO: use pid file.
+trap "" 15
+# For some reason this has stopped working.
+#killall "`basename $0`"
+killall wallpaper-chang
+trap - 15
+
+
+# Go to background.
+if [ $daemonize = true ]
+then
+    # Fork and exit.
+    ($0 $raw_args --no-daemon &>/dev/null &)
+    exit 0
+fi
+
+
+# Make list of files.
+list=`find $wallpapers_dir \
+        -regextype posix-extended -iregex '.*\.(jpg|jpeg|png|gif)'`
+
+
+# Infinitely change wallpaper after delay.
+while true
+do
+    let lineNum=$RANDOM%`echo "$list" | wc -l`+1
+    # Choose filename, make it absolute.
+    filename=`echo "$list" | sed -n "$lineNum"p | xargs readlink -m`
+    feh --bg-max "$filename"
+    echo "[`date '+%F %H:%M:%S'`] $filename" >>~/.wallpapaer-changer.log
+    sleep $delay
+done
