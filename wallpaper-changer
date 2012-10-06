@@ -46,9 +46,7 @@ done
 # Kill other instances.
 #TODO: use pid file.
 trap "" 15
-# For some reason this has stopped working.
-#killall "`basename $0`"
-killall wallpaper-chang
+killall "`basename $0`"
 trap - 15
 
 
